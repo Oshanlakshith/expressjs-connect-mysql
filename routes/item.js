@@ -1,68 +1,88 @@
 const express=require('express')
 const router=express.Router()
-const Item=require('../models/item.models')
+const mysql=require('mysql')
+const db=require('../configs/db.config')
 
 
-router.get('/',async(req,res)=>{
-    try {
-        const item=await Item.find()
-       // res.send(item)
-       res.json(item)
-    } catch (error) {
-        res.send("Err"+error)
+const connection=mysql.createConnection(db.database)
+
+connection.connect(function(err){
+    if(err){
+        console.log(err);
+    }else{
+        var itemtableqQuery="CREATE TABLE IF NOT EXISTS Item(code VARCHAR(255),itemname VARCHAR(255),qty VARCHAR(255),price VARCHAR(255))"
+        connection.query(itemtableqQuery,function(err,result){
+            console.log("Connect Database")
+        console.log("item table Created")
+        })
     }
-    res.send("Item get All")
 })
+
+router.get('/',(req,res)=>{
+    var query="SELECT*FROM item";
+    connection.query(query,function(err,row){
+        if(err){
+            res.send("No customers")
+        }else{
+            res.send(row)
+        }
+    });
+
+})
+
 
 router.post('/',(req,res)=>{
-    const item=new Item({
-        code: req.body.code,
-        description: req.body.description,
-        price: req.body.price,
-        qty: req.body.qty
+    const code=req.body.code
+    const itemname=req.body.itemname
+    const qty=req.body.qty
+    const price=req.body.price
+
+    var query="INSERT INTO item (code,itemname,qty,price)VALUES(?,?,?,?)";
+
+    connection.query(query,[code,itemname,qty,price],(err)=>{
+        if(err){
+            res.send("Item Already Saved");
+        }else{
+            res.send("Item saved")
+        }
     })
-    try {
-       const response=item.save()
-       //res.send(response)
-       res.json(response)
-    } catch (error) {
-        res.send(error)
-    }
-})
-router.delete('/:id',async(req,res)=>{
-    try {
-        const item=await Item.findById(req.params.id)
-        const response=await item.remove()
-        res.json(response)
-    } catch (error) {
-        res.send(error)
-    }
 
+    console.log(req.body)
 })
 
-router.put('/:id',async(req,res)=>{
-    try {
-        const item=await Item.findById(req.params.id)
-        item.code=req.body.code
-        item.description= req.body.description,
-        item. price= req.body.price,
-        item. qty= req.body.qty
 
-        const response=await item.save()
-        res.json(response)
-        
-    } catch (error) {
-        res.send(error)
-    }
+router.put('/',(req,res)=>{
+    const code=req.body.code
+    const itemname=req.body.itemname
+    const qty=req.body.qty
+    const price=req.body.price
+
+    var query="UPDATE item SET itemname=?,qty=?,price=? WHERE code=?";
+
+    connection.query(query,[itemname, qty , price,code],(err,row)=>{
+            if (err)throw err;
+                res.send(row)
+    })
 })
 
-router.get('/:id',async(req,res)=>{
-    try {
-       const item=await Item.findById(req.params.id)
-       res.json(item)
-    } catch (error) {
-        res.send("ERR "+err)
-    }
+router.delete('/:code',(req,res)=>{
+    const code=req.params.code
+    var query="DELETE FROM item WHERE code=?";
+    connection.query(query,[code],(err,rows)=>{
+        res.send("Deleted item :" +code)
 
+    })
+})
+
+router.get('/:id',(req,res)=>{
+    const code=req.params.id
+    var query="SELECT *FROM item WHERE code=?"
+    connection.query(query,[code],(err,row)=>{
+        if(err){
+            res.send("No User")
+        }else{
+            res.send(row)
+        }
+    });
 })
 module.exports=router
